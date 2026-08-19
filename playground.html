@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proteus Lab</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="site">
+  <svg class="mark" viewBox="0 0 441 617" role="img" aria-label="Proteus">
+  <title>Proteus</title>
+  <style>
+    .mark line { stroke: currentColor; stroke-width: 5; opacity: .8; stroke-linecap: round }
+    .mark circle { fill: currentColor }
+    .mark circle.a { fill: var(--logo-accent, #3E7A58) }
+    .mark path { fill: currentColor }
+  </style>
+  <g fill="none">
+      <line x1="32" y1="32" x2="235" y2="34"/>
+      <line x1="32" y1="32" x2="32" y2="206"/>
+      <line x1="235" y1="34" x2="386" y2="119"/>
+      <line x1="235" y1="34" x2="137" y2="302"/>
+      <line x1="386" y1="119" x2="409" y2="280"/>
+      <line x1="386" y1="119" x2="137" y2="302"/>
+      <line x1="32" y1="206" x2="137" y2="302"/>
+      <line x1="32" y1="206" x2="32" y2="397"/>
+      <line x1="409" y1="280" x2="265" y2="371"/>
+      <line x1="137" y1="302" x2="265" y2="371"/>
+      <line x1="137" y1="302" x2="32" y2="397"/>
+      <line x1="265" y1="371" x2="32" y2="397"/>
+      <line x1="32" y1="397" x2="32" y2="585"/>
+  </g>
+    <circle cx="32" cy="32" r="25"/>
+    <circle cx="235" cy="34" r="25" class="a"/>
+    <circle cx="386" cy="119" r="25"/>
+    <circle cx="32" cy="206" r="25"/>
+    <circle cx="409" cy="280" r="25" class="a"/>
+    <circle cx="137" cy="302" r="25"/>
+    <circle cx="265" cy="371" r="25" class="a"/>
+    <circle cx="32" cy="397" r="25"/>
+    <circle cx="32" cy="585" r="25"/>
+</svg>
+  <span class="name">PROTEUS</span>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/proteus-evolve/Proteus">GitHub</a>
+    <button id="theme-btn" type="button" aria-label="switch theme"></button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <h2>The lab · configure a run</h2>
+  <div id="backend-banner" class="banner">checking backend…</div>
+
+  <div class="formcard">
+    <h3>01 · Harness</h3>
+    <div class="row">
+      <div>
+        <label>harness</label>
+        <select id="harness">
+          <option value="minimal">minimal — offline reference (free, instant)</option>
+          <option value="llm">llm — reference harness, live model</option>
+          <option value="dsh">dsh — DeepSeek Harness (containerized)</option>
+          <option value="pi">pi — Pi coding agent (containerized)</option>
+        </select>
+      </div>
+      <div>
+        <label>episodes (per seed)</label>
+        <input id="episodes" type="number" value="4" min="1" max="8">
+      </div>
+      <div>
+        <label>seeds (per arm)</label>
+        <input id="seeds" type="number" value="1" min="1" max="2">
+      </div>
+    </div>
+  </div>
+
+  <div class="formcard" id="model-card">
+    <h3>02 · Model &amp; key</h3>
+    <div class="row">
+      <div><label>model</label><input id="model" placeholder="deepseek-v4-flash"></div>
+      <div><label>base URL (llm harness only)</label>
+        <input id="base_url" placeholder="https://api.deepseek.com"></div>
+    </div>
+    <label>API key <span class="muted">— sent only to the run backend, kept in memory for
+    the duration of your run, never stored or logged</span></label>
+    <input id="key" type="password" placeholder="sk-…">
+  </div>
+
+  <div class="formcard">
+    <h3>03 · Arms · action-preference injection</h3>
+    <div id="arms"></div>
+    <a href="#" id="add-arm">+ add arm</a>
+    <div class="muted" style="margin-top:8px">Each arm is one condition: a removable
+    disposition installed at episode 0. <code>neutral</code> is the control.</div>
+  </div>
+
+  <div class="formcard">
+    <h3>04 · Goal &amp; evaluator</h3>
+    <div class="row">
+      <div>
+        <label>mode</label>
+        <select id="goal-mode">
+          <option value="none">no goal — unpressured evolution</option>
+          <option value="single">single goal</option>
+        </select>
+      </div>
+      <div id="goal-vis-wrap" style="display:none">
+        <label>evaluator visibility</label>
+        <select id="goal-vis">
+          <option value="hidden">hidden — agent never sees the score</option>
+          <option value="observe">observe — score shown next episode</option>
+        </select>
+      </div>
+      <div id="goal-sel-wrap" style="display:none">
+        <label>outer-loop selection</label>
+        <select id="goal-sel">
+          <option value="none">none</option>
+          <option value="accept_reject">accept/reject regressions</option>
+        </select>
+      </div>
+    </div>
+    <div id="goal-detail" style="display:none">
+      <label>goal text (announced in the act phase)</label>
+      <textarea id="goal-text" placeholder="Grow a useful knowledge base in notes/"></textarea>
+      <div class="row">
+        <div>
+          <label>evaluator</label>
+          <select id="eval-type">
+            <option value="none">none (stated aim, no measured feedback)</option>
+            <option value="surface_units">surface_units — files on a surface</option>
+            <option value="tool_calls">tool_calls — activity count</option>
+          </select>
+        </div>
+        <div id="eval-surface-wrap" style="display:none">
+          <label>surface</label>
+          <select id="eval-surface"><option>notes</option><option>tools</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta" style="display:flex; gap:12px">
+    <a class="btn primary" href="#" id="run-btn">Run</a>
+    <a class="btn" href="#" id="cmd-btn">Copy CLI command</a>
+  </div>
+  <div id="msg" class="banner bad" style="display:none"></div>
+  <pre class="cmd" id="cmd-out" style="display:none"></pre>
+</div>
+
+<footer class="site">caps: arms ≤ 3 · seeds ≤ 2 · episodes ≤ 8 · bounded concurrency</footer>
+
+<script>
+const API = localStorage.getItem("proteus_api")
+  || (location.protocol === "file:" || location.host.endsWith("github.io")
+      ? "http://localhost:8400" : location.origin);
+let backendUp = false;
+
+async function checkBackend() {
+  const b = document.getElementById("backend-banner");
+  try {
+    const r = await fetch(`${API}/api/config`, {signal: AbortSignal.timeout(2500)});
+    if (r.ok) { backendUp = true;
+      b.textContent = `backend connected: ${API}`; return; }
+  } catch (e) {}
+  b.className = "banner bad";
+  b.innerHTML = `no backend at <code>${API}</code> — “Run” is disabled; use
+    “Copy CLI command” to run locally, or start a backend:
+    <code>python web/server.py --port 8400</code>`;
+}
+
+const armsDiv = document.getElementById("arms");
+function armRow(kind="neutral", surface="notes", text="") {
+  const d = document.createElement("div");
+  d.className = "row"; d.style.marginBottom = "8px";
+  d.innerHTML = `
+    <div><select class="a-kind">
+      <option value="neutral">neutral (control)</option>
+      <option value="review">review:&lt;surface&gt;</option>
+      <option value="record">record:&lt;surface&gt;</option>
+      <option value="custom">custom text</option>
+    </select></div>
+    <div><select class="a-surface"><option>notes</option><option>tools</option></select></div>
+    <div style="flex:2"><input class="a-text" placeholder="custom disposition text (≤500 chars)"></div>
+    <div style="flex:0"><a href="#" class="a-del">✕</a></div>`;
+  d.querySelector(".a-kind").value = kind;
+  d.querySelector(".a-surface").value = surface;
+  d.querySelector(".a-text").value = text;
+  d.querySelector(".a-del").onclick = (e) => { e.preventDefault(); d.remove(); };
+  armsDiv.appendChild(d);
+}
+armRow("neutral"); armRow("review", "notes");
+document.getElementById("add-arm").onclick = (e) => {
+  e.preventDefault();
+  if (armsDiv.children.length < 3) armRow();
+};
+
+document.getElementById("goal-mode").onchange = (e) => {
+  const on = e.target.value !== "none";
+  for (const id of ["goal-vis-wrap", "goal-sel-wrap", "goal-detail"])
+    document.getElementById(id).style.display = on ? "" : "none";
+};
+document.getElementById("eval-type").onchange = (e) => {
+  document.getElementById("eval-surface-wrap").style.display =
+    e.target.value === "surface_units" ? "" : "none";
+};
+document.getElementById("harness").onchange = (e) => {
+  document.getElementById("model-card").style.opacity =
+    e.target.value === "minimal" ? .45 : 1;
+};
+
+function spec() {
+  const arms = [...armsDiv.children].map(d => ({
+    kind: d.querySelector(".a-kind").value,
+    surface: d.querySelector(".a-surface").value,
+    text: d.querySelector(".a-text").value,
+  }));
+  const mode = document.getElementById("goal-mode").value;
+  const goal = mode === "none" ? {mode: "none"} : {
+    mode: "single",
+    selection: document.getElementById("goal-sel").value,
+    goals: [{
+      name: "goal",
+      text: document.getElementById("goal-text").value,
+      visibility: document.getElementById("goal-vis").value,
+      evaluator: (() => {
+        const t = document.getElementById("eval-type").value;
+        if (t === "none") return {type: "none"};
+        if (t === "surface_units")
+          return {type: t, surface: document.getElementById("eval-surface").value};
+        return {type: t};
+      })(),
+    }],
+  };
+  return {
+    harness: document.getElementById("harness").value,
+    model: document.getElementById("model").value,
+    base_url: document.getElementById("base_url").value,
+    key: document.getElementById("key").value,
+    seeds: +document.getElementById("seeds").value,
+    episodes: +document.getElementById("episodes").value,
+    arms, goal,
+  };
+}
+
+function cli(s) {
+  const parts = [`proteus run --harness ${s.harness}`];
+  for (const a of s.arms)
+    parts.push(a.kind === "neutral" ? "--arm neutral"
+      : a.kind === "custom" ? `# custom arm: use the library API for custom text`
+      : `--arm ${a.kind}:${a.surface}`);
+  if (s.goal.mode !== "none")
+    parts.push(`--goal "task:${(s.goal.goals[0].text || "").replace(/"/g, "'")}"`);
+  parts.push(`--seeds ${s.seeds} --episodes ${s.episodes} --out runs/lab`);
+  return parts.join(" \\\n    ") +
+    `\nproteus watch --out runs/lab   # live page` +
+    (s.harness === "minimal" ? "" :
+     `\n# export ${s.harness === "llm" ? "DEEPSEEK_API_KEY" : "DEEPSEEK_API_KEY"}=<your key> first`);
+}
+
+document.getElementById("cmd-btn").onclick = (e) => {
+  e.preventDefault();
+  const out = document.getElementById("cmd-out");
+  out.textContent = cli(spec());
+  out.style.display = "";
+  navigator.clipboard?.writeText(out.textContent);
+};
+
+document.getElementById("run-btn").onclick = async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("msg");
+  msg.style.display = "none";
+  if (!backendUp) {
+    msg.textContent = "no backend connected — use Copy CLI command instead";
+    msg.style.display = ""; return;
+  }
+  const r = await fetch(`${API}/api/runs`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(spec()),
+  });
+  const body = await r.json();
+  if (!r.ok) { msg.textContent = body.error || r.status; msg.style.display = ""; return; }
+  localStorage.setItem(`proteus_token_${body.id}`, body.token);
+  location.href = `run.html?id=${body.id}`;
+};
+
+checkBackend();
+</script>
+<script src="assets/theme.js"></script>
+</body>
+</html>

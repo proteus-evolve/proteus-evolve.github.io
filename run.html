@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proteus run</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="site">
+  <svg class="mark" viewBox="0 0 441 617" role="img" aria-label="Proteus">
+  <title>Proteus</title>
+  <style>
+    .mark line { stroke: currentColor; stroke-width: 5; opacity: .8; stroke-linecap: round }
+    .mark circle { fill: currentColor }
+    .mark circle.a { fill: var(--logo-accent, #3E7A58) }
+    .mark path { fill: currentColor }
+  </style>
+  <g fill="none">
+      <line x1="32" y1="32" x2="235" y2="34"/>
+      <line x1="32" y1="32" x2="32" y2="206"/>
+      <line x1="235" y1="34" x2="386" y2="119"/>
+      <line x1="235" y1="34" x2="137" y2="302"/>
+      <line x1="386" y1="119" x2="409" y2="280"/>
+      <line x1="386" y1="119" x2="137" y2="302"/>
+      <line x1="32" y1="206" x2="137" y2="302"/>
+      <line x1="32" y1="206" x2="32" y2="397"/>
+      <line x1="409" y1="280" x2="265" y2="371"/>
+      <line x1="137" y1="302" x2="265" y2="371"/>
+      <line x1="137" y1="302" x2="32" y2="397"/>
+      <line x1="265" y1="371" x2="32" y2="397"/>
+      <line x1="32" y1="397" x2="32" y2="585"/>
+  </g>
+    <circle cx="32" cy="32" r="25"/>
+    <circle cx="235" cy="34" r="25" class="a"/>
+    <circle cx="386" cy="119" r="25"/>
+    <circle cx="32" cy="206" r="25"/>
+    <circle cx="409" cy="280" r="25" class="a"/>
+    <circle cx="137" cy="302" r="25"/>
+    <circle cx="265" cy="371" r="25" class="a"/>
+    <circle cx="32" cy="397" r="25"/>
+    <circle cx="32" cy="585" r="25"/>
+</svg>
+  <span class="name">PROTEUS</span>
+  <nav>
+    <a href="playground.html">Lab</a>
+    <a href="index.html">Home</a>
+    <button id="theme-btn" type="button" aria-label="switch theme"></button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <h2>Run <span id="rid" class="muted"></span></h2>
+  <div id="status" class="banner">loading…</div>
+  <div class="legend" id="legend" style="display:none">
+    <span class="micro cap">fabric · one cell per episode · colour = surface grown most</span>
+    <span class="micro"><i class="sw" style="background:var(--s-notes)"></i>notes</span>
+    <span class="micro"><i class="sw" style="background:var(--s-tools)"></i>tools</span>
+    <span class="micro"><i class="sw" style="background:var(--s-skills)"></i>skills</span>
+    <span class="micro"><i class="sw" style="background:var(--s-instr)"></i>instructions</span>
+    <span class="micro"><i class="sw" style="background:var(--s-none)"></i>no growth</span>
+  </div>
+  <div class="tblwrap"><table id="tbl" style="display:none"><thead><tr>
+    <th>arm</th><th>seed</th><th>progress</th><th>ep</th>
+    <th>fabric</th><th>units</th><th>score</th><th>status</th>
+  </tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="muted" id="foot" style="margin-top:10px"></div>
+</div>
+
+<script>
+const API = localStorage.getItem("proteus_api")
+  || (location.protocol === "file:" || location.host.endsWith("github.io")
+      ? "http://localhost:8400" : location.origin);
+const id = new URLSearchParams(location.search).get("id");
+document.getElementById("rid").textContent = id ? id.slice(0, 8) : "?";
+
+async function jl(u) {
+  try {
+    const r = await fetch(u, {cache: "no-store"});
+    if (!r.ok) return [];
+    return (await r.text()).split("\n").filter(Boolean).map(JSON.parse);
+  } catch (e) { return []; }
+}
+const SURF = {notes:"--s-notes", tools:"--s-tools", skills:"--s-skills",
+              instructions:"--s-instr"};
+function fabric(recs, target) {
+  // per-episode delta of units per surface; cell = dominant surface, opacity = magnitude
+  const cells = [];
+  let prev = {};
+  const byEp = {};
+  recs.forEach(r => byEp[r.episode] = r.units || {});
+  for (let ep = 1; ep <= target; ep++) {
+    const cur = byEp[ep];
+    if (!cur) { cells.push(`<i title="ep ${ep}: pending" style="opacity:.25"></i>`); continue; }
+    let best = null, bestD = 0, total = 0;
+    for (const s of Object.keys(cur)) {
+      const d = (cur[s]||0) - (prev[s]||0);
+      total += Math.max(d, 0);
+      if (d > bestD) { bestD = d; best = s; }
+    }
+    prev = cur;
+    if (!best) cells.push(`<i title="ep ${ep}: no growth"></i>`);
+    else {
+      const op = Math.min(1, .45 + bestD * .18);
+      cells.push(`<i title="ep ${ep}: +${bestD} ${best} (${total} total)"
+        style="background:var(${SURF[best]||"--s-none"});opacity:${op}"></i>`);
+    }
+  }
+  return `<div class="fabric">${cells.join("")}</div>`;
+}
+
+async function tick() {
+  const st = document.getElementById("status");
+  let job;
+  try {
+    job = await (await fetch(`${API}/api/runs/${id}`, {cache:"no-store"})).json();
+  } catch (e) { st.className = "banner bad";
+    st.textContent = `cannot reach backend at ${API}`; return; }
+  if (job.error && job.status === "error") {
+    st.className = "banner bad";
+    st.textContent = `error: ${job.error}`;
+  } else if (job.status === "queued") {
+    st.textContent = `queued — position ${job.queue_position} (bounded concurrency; the page keeps polling)`;
+  } else if (job.status === "running") {
+    st.textContent = "running — live view below updates every 5s";
+  } else if (job.status === "done") {
+    st.className = "banner";
+    st.textContent = "complete";
+  }
+
+  let manifest;
+  try {
+    const r = await fetch(`${API}/api/runs/${id}/manifest.json`, {cache:"no-store"});
+    if (!r.ok) return;
+    manifest = await r.json();
+  } catch (e) { return; }
+  document.getElementById("tbl").style.display = "";
+  document.getElementById("legend").style.display = "";
+  const rows = [];
+  for (const r of manifest.runs) {
+    const recs = await jl(`${API}/api/runs/${id}/progress/${r.id}.jsonl`);
+    const last = recs[recs.length-1];
+    const ep = last ? last.episode : 0, tgt = manifest.episodes;
+    const errored = last && !last.ok;
+    const units = last ? Object.entries(last.units).map(([k,v]) => `${k}:${v}`).join("  ") : "—";
+    const score = last && Object.keys(last.scores||{}).length
+      ? Object.entries(last.scores).map(([k,v]) => `${k}=${(+v).toFixed(2)}`).join(" ") : "—";
+    const status = errored ? `<span class="tag bad">error</span>`
+      : ep >= tgt ? `<span class="tag done">complete</span>`
+      : ep > 0 ? `<span class="tag">running</span>` : `<span class="tag">pending</span>`;
+    rows.push(`<tr><td>${r.arm}</td><td class="mono">${r.seed}</td>
+      <td><div class="bar ${errored?"err":""}"><i style="width:${Math.round(100*ep/tgt)}%"></i></div></td>
+      <td class="mono">${ep}/${tgt}</td><td>${fabric(recs, tgt)}</td>
+      <td class="mono">${units}</td><td class="mono">${score}</td><td>${status}</td></tr>`);
+  }
+  document.getElementById("rows").innerHTML = rows.join("");
+  document.getElementById("foot").textContent =
+    `refreshed ${new Date().toLocaleTimeString()}`;
+  if (job.status === "done" || job.status === "error") clearInterval(timer);
+}
+const timer = setInterval(tick, 5000);
+tick();
+</script>
+<script src="assets/theme.js"></script>
+</body>
+</html>
