@@ -122,6 +122,10 @@ footer.site { color:var(--dim); font-size:11px; letter-spacing:.14em;
   text-align:center; padding:44px 0 30px; border-top:1px solid var(--rule);
   margin-top:72px }
 footer.site a { color:var(--dim) }
+footer.site .site-counter { display:block; width:max-content; margin:14px auto 0;
+  line-height:0; opacity:.9 }
+footer.site .site-counter:hover { opacity:1; text-decoration:none }
+footer.site .site-counter img { display:block; height:20px; width:auto }
 
 /* explicit theme choice overrides the OS preference, both ways */
 :root[data-theme="dark"] {
